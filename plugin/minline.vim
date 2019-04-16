@@ -28,8 +28,12 @@ let g:minlineHonorUserDefinedColors = get(g:, "minlineHonorUserDefinedColors", 0
 "   \  "t":      ["%1*", " term "],
 "   \}
 
+" keyboard symbol
+" ⌨
+" pencil up
+" ✐
 let s:modes = {
-  \  "n":      ["%#MinlineNormalMode#", "N"],
+  \  "n":      ["%#MinlineNormalMode#", "✜" ],
   \  "i":      ["%1*", "I"],
   \  "R":      ["%4*", "R"],
   \  "v":      ["%3*", "V"],
