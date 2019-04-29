@@ -36,16 +36,16 @@ let g:minlineHonorUserDefinedColors = get(g:, "minlineHonorUserDefinedColors", 0
 " ✐
 let s:modes = {
 			\  "n":      ["%#MinlineNormalMode#", "✜" ],
-			\  "i":      ["%1*", "I"],
+			\  "i":      ["%1*", "i"],
 			\  "R":      ["%4*", "R"],
-			\  "v":      ["%3*", "V"],
-			\  "V":      ["%3*", "VL"],
-			\  "\<C-v>": ["%3*", "VR"],
-			\  "c":      ["%1*", "C"],
-			\  "s":      ["%3*", "S"],
-			\  "S":      ["%3*", "SL"],
-			\  "\<C-s>": ["%3*", "SR"],
-			\  "t":      ["%1*", "T"],
+			\  "v":      ["%3*", "v"],
+			\  "V":      ["%3*", "V"],
+			\  "\<C-v>": ["%3*", "^v"],
+			\  "c":      ["%1*", "c"],
+			\  "s":      ["%3*", "s"],
+			\  "S":      ["%3*", "S"],
+			\  "\<C-s>": ["%3*", "^s"],
+			\  "t":      ["%1*", "t"],
 			\}
 
 
@@ -93,26 +93,34 @@ function! s:reverse(group)
 	return ''
 endfunction
 
-
-
 function! s:HighlightGroup(group_name, ctermfg, ctermbg)
 	let l:ctermfg = ''
 	if a:ctermfg != ''
 		let l:ctermfg = ' ctermfg=' . a:ctermfg
 	endif
+
 	let l:ctermbg = ''
 	if a:ctermbg != ''
 		let l:ctermbg = ' ctermbg=' . a:ctermbg
 	endif
+
+    if l:ctermfg == '' && l:ctermbg == ''
+        return ''
+    endif
+
 	let l:highlight = 'highlight ' . a:group_name . l:ctermfg . l:ctermbg
 	return l:highlight
 endfunction
 
 
 function! s:ExecHighlightGroup(group_name, ctermfg, ctermbg)
-	exec s:HighlightGroup(a:group_name, a:ctermfg, a:ctermbg)
-endfunction
+	let l:hg = s:HighlightGroup(a:group_name, a:ctermfg, a:ctermbg)
+    if l:hg == ''
+        let l:hg = s:HighlightGroup(a:group_name, 'none', 'none')
+    endif
 
+    exec l:hg
+endfunction
 
 let s:reset = '%0*'
 let s:specialColor = '%#MinlineSpecial#'
@@ -120,7 +128,7 @@ let s:vbar = s:specialColor . '│' . s:reset
 let s:middot =  s:specialColor . '·' . s:reset
 let s:separator =  s:specialColor . ' │ ' . s:reset
 
-function! s:colorScheme()
+function! s:ColorScheme()
 	if g:minlineHonorUserDefinedColors
 		return
 	endif
@@ -194,7 +202,7 @@ function! MinlineLinterWarnings()
 endfunction
 
 
-function! MinlineStatusPlain()
+function! MinlineStatus()
 	let l:statusline = ""
 	let l:mode = mode()
 	let l:push_right = '%='
@@ -265,12 +273,11 @@ function! s:StatusLine(mode)
 	elseif a:mode == "not-current"
 		" Status line for inactive windows.
 		setlocal statusline=\ %*%<%{MinlineShortFilePath()}\ %h%m%r
-		"setlocal statusline+=%*%=%-14.(%l,%c%V%)[%L]\ %P
 		return
 	endif
 
 	" Status line for the active window.
-	setlocal statusline=%!MinlineStatusPlain()
+	setlocal statusline=%!MinlineStatus()
 endfunction
 
 
@@ -283,7 +290,8 @@ augroup minlineStatusline
 	" endif
 augroup END
 
-augroup MyColors
+augroup minlineColors
 	autocmd!
-	autocmd ColorScheme * call s:colorScheme()
+	autocmd ColorScheme * call s:ColorScheme()
 augroup END
+call s:ColorScheme()
