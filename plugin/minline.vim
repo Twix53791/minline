@@ -3,6 +3,8 @@
 " URL:          github.com/mgutz/minline
 " License:      MIT (https://opensource.org/licenses/MIT)
 
+" vim gotchas: 0 == ''
+
 if exists("g:loaded_minline")
 	finish
 endif
@@ -69,7 +71,18 @@ function! MinlineUserColor(num, text)
 endfunction
 
 
-function! s:GetHighlightTerm(group, term)
+function! s:getHighlightTerm(group, term)
+	" Store output of group to variable
+	let output = execute('hi ' . a:group)
+
+	if output =~ a:term
+		" Find the term we're looking for
+		return matchstr(output, a:term.'=\zs\S*')
+	endif
+	return ''
+endfunction
+
+function! s:reverse(group)
 	" Store output of group to variable
 	let output = execute('hi ' . a:group)
 
@@ -81,11 +94,23 @@ function! s:GetHighlightTerm(group, term)
 endfunction
 
 
-function! s:HighlightGroup(group_name, ctermfg)
-	let l:statusline_ctermbg = s:GetHighlightTerm('StatusLine', 'ctermbg')
-	let l:ctermbg = l:statusline_ctermbg  ? ' ctermbg=' . l:statusline_ctermbg : ''
-	let l:highlight = 'highlight ' . a:group_name . ' ctermfg=' . a:ctermfg . l:ctermbg
+
+function! s:HighlightGroup(group_name, ctermfg, ctermbg)
+	let l:ctermfg = ''
+	if a:ctermfg != ''
+		let l:ctermfg = ' ctermfg=' . a:ctermfg
+	endif
+	let l:ctermbg = ''
+	if a:ctermbg != ''
+		let l:ctermbg = ' ctermbg=' . a:ctermbg
+	endif
+	let l:highlight = 'highlight ' . a:group_name . l:ctermfg . l:ctermbg
 	return l:highlight
+endfunction
+
+
+function! s:ExecHighlightGroup(group_name, ctermfg, ctermbg)
+	exec s:HighlightGroup(a:group_name, a:ctermfg, a:ctermbg)
 endfunction
 
 
@@ -100,16 +125,18 @@ function! s:colorScheme()
 		return
 	endif
 
-	" Set FG only and use existing StatusLine BG
-	let s:MinlineError = s:HighlightGroup('MinlineError', 1)
-	let s:MinlineWarning = s:HighlightGroup('MinlineWarning', 3)
-	let s:MinlineNormalMode = s:HighlightGroup('MinlineNormalMode', 0)
-	let s:MinlineSpecial = s:HighlightGroup('MinlineSpecial', 0)
 
-	exec s:MinlineError
-	exec s:MinlineWarning
-	exec s:MinlineNormalMode
-	exec s:MinlineSpecial
+	let l:ctermbg = s:getHighlightTerm('StatusLine', 'ctermbg')
+	let l:ctermfg = s:getHighlightTerm('StatusLine', 'ctermfg')
+
+
+	" Set FG only and use existing StatusLine BG
+	call s:ExecHighlightGroup('MinlineError', '1', l:ctermbg)
+	call s:ExecHighlightGroup('MinlineWarning', '3', l:ctermbg)
+	call s:ExecHighlightGroup('MinlineSpecial', '0', l:ctermbg)
+	call s:ExecHighlightGroup('MinlineNormalMode', l:ctermbg, l:ctermfg)
+	call s:ExecHighlightGroup('MinlineReverse', l:ctermbg, l:ctermfg)
+
 	exec "highlight User1 ctermbg=4   guibg=" . s:blue    . " ctermfg=234 guifg=" . s:grey234
 	exec "highlight User2 ctermbg=251 guibg=" . s:white   . " ctermfg=234 guifg=" . s:grey234
 	exec "highlight User3 ctermbg=13  guibg=" . s:purple  . " ctermfg=234 guifg=" . s:grey234
@@ -152,7 +179,6 @@ function! s:CocWarnings()
 	return info['warning']
 endfunction
 
-
 function! MinlineLinterErrors()
 	if exists('b:coc_diagnostic_info')
 		return s:CocErrors()
@@ -180,11 +206,10 @@ function! MinlineStatusPlain()
 	" %#HighlightGroup#
 
 	" vim mode
-	let l:statusline .= ' '
-	let l:statusline .= MinlineModeColor(l:mode) . MinlineModeText(l:mode) . s:reset
-	let l:statusline .= s:separator
+	let l:statusline .= MinlineModeColor(l:mode) . ' ' . MinlineModeText(l:mode) . ' ' . s:reset
 
 	" current file
+	let l:statusline .=  ' '
 	let l:file = MinlineShortFilePath()
 	if l:file == ''
 		let l:statusline .= s:specialColor . '(new file)' . s:reset
