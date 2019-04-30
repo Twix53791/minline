@@ -175,30 +175,42 @@ function! MinlineShortFilePath()
 	endif
 endfunction
 
-function! s:CocErrors()
+function! s:AleErrorCount()
+    let l:counts = ale#statusline#Count(bufnr(''))
+    return l:counts[0]
+endfunction
+
+function! s:AleWarningCount()
+    let l:counts = ale#statusline#Count(bufnr(''))
+    return l:counts[1]
+endfunction
+
+
+function! s:CocErrorCount()
 	let info = get(b:, 'coc_diagnostic_info', {})
 	if empty(info) | return 0 | endif
 	return info['error']
 endfunction
 
-function! s:CocWarnings()
+function! s:CocWarningCount()
 	let info = get(b:, 'coc_diagnostic_info', {})
 	if empty(info) | return 0 | endif
 	return info['warning']
 endfunction
 
+
 function! MinlineLinterErrors()
-	if exists('b:coc_diagnostic_info')
-		return s:CocErrors()
-	endif
-	return 0
+    if exists('g:loaded_ale')
+        return s:AleErrorCount()
+    endif
+	return s:CocErrorCount()
 endfunction
 
 function! MinlineLinterWarnings()
-	if exists('b:coc_diagnostic_info')
-		return s:CocWarnings()
-	endif
-	return 0
+    if exists('g:loaded_ale')
+        return s:AleWarningCount()
+    endif
+	return s:CocWarningCount()
 endfunction
 
 
@@ -283,6 +295,7 @@ endfunction
 
 augroup minlineStatusline
 	autocmd!
+    autocmd User GitGutter call s:StatusLine("normal")
 	autocmd VimEnter,WinEnter,BufWinEnter * call s:StatusLine("normal")
 	autocmd WinLeave,FilterWritePost      * call s:StatusLine("not-current")
 	" if exists("##CmdlineEnter")
