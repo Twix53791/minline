@@ -141,7 +141,7 @@ function! s:ColorScheme()
 	" Set FG only and use existing StatusLine BG
 	call s:ExecHighlightGroup('MinlineError', '1', l:ctermbg)
 	call s:ExecHighlightGroup('MinlineWarning', '3', l:ctermbg)
-	call s:ExecHighlightGroup('MinlineSpecial', '0', l:ctermbg)
+	call s:ExecHighlightGroup('MinlineSpecial', '240', l:ctermbg)
 	call s:ExecHighlightGroup('MinlineNormalMode', l:ctermbg, l:ctermfg)
 	call s:ExecHighlightGroup('MinlineReverse', l:ctermbg, l:ctermfg)
 
