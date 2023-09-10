@@ -3,6 +3,13 @@
 " URL:          github.com/mgutz/minline
 " License:      MIT (https://opensource.org/licenses/MIT)
 
+" Options:
+"   - minlineWithGitBranchCharacter : git glyph
+"   - minlineHonorUserDefinedColors : activate user defined colors
+"   - minlineGitFieldStyle          : graphic style of the git status field
+"                                     can be: airline (default), colorblock, arrow, bar
+"   - minlineGitFieldBg             : git field bg color
+
 " vim gotchas: 0 == ''
 
 if exists("g:loaded_minline")
@@ -34,12 +41,16 @@ let g:minlineHonorUserDefinedColors = get(g:, "minlineHonorUserDefinedColors", 0
 " ⌨
 " pencil up
 " ✐
+" Change here the text rendered in the 'mode' field of the bar
+" The %num* are the user's numbers (User1, User2, etc.)
+" For each user a color is set (see below "highlight User...")
+" Their are used if minlineHonorUserDefinedColors is set
 let s:modes = {
-			\  "n":      ["%#MinlineNormalMode#", "✜" ],
-			\  "i":      ["%1*", "i"],
+			\  "n":      ["%#MinlineNormalMode#", "normal" ],
+			\  "i":      ["%1*", "insert"],
 			\  "R":      ["%4*", "R"],
-			\  "v":      ["%3*", "v"],
-			\  "V":      ["%3*", "V"],
+			\  "v":      ["%2*", "visual"],
+			\  "V":      ["%3*", "VISUAL"],
 			\  "\<C-v>": ["%3*", "^v"],
 			\  "c":      ["%1*", "c"],
 			\  "s":      ["%3*", "s"],
@@ -51,8 +62,9 @@ let s:modes = {
 
 " The minline colors (https://github.com/bluz71/vim-minline-colors)
 let s:white   = "#c6c6c6" " white   = 251
-let s:grey236 = "#303030" " grey236 = 236
-let s:grey234 = "#1c1c1c" " grey234 = 234
+let s:yellow  = "#ffd700"
+let s:grey236 = "#ffffff" " grey236 = 236
+let s:grey234 = "#ffffff" " grey234 = 234
 let s:emerald = "#42cf89" " emerald = 10
 let s:blue    = "#80a0ff" " blue    = 4
 let s:purple  = "#ae81ff" " purple  = 13
@@ -123,32 +135,67 @@ function! s:ExecHighlightGroup(group_name, ctermfg, ctermbg)
 endfunction
 
 let s:reset = '%0*'
-let s:specialColor = '%#MinlineSpecial#'
-let s:vbar = s:specialColor . '│' . s:reset
-let s:middot =  s:specialColor . '·' . s:reset
-let s:separator =  s:specialColor . ' │ ' . s:reset
+let s:separatorColor  = '%#MinlineSeparator#'
+let s:glyphColor      = '%#MinlineGlyph#'
+let s:gitFieldColor   = '%#MinlineGitField#'
+let s:gitAirline      = '%#MinlineAirline#'
+let s:vbar   = '│'
+let s:rsep   = ''
+let s:middot = '·'
+let g:bar  = get(g:, "minlineBarSeparator", 0)          " for right separators only
+
+if g:bar
+    let s:rsep = s:vbar
+endif
+
+let s:rseparator = s:separatorColor . ' ' . s:rsep . ' ' . s:reset
+
+if g:minlineWithGitBranchCharacter
+    let s:gitGlyph = s:glyphColor . ' ' . ''
+else
+    let s:gitGlyph = s:glyphFieldColor . ' ' . '~'
+endif
+
+let g:minlineGitFieldStyle = get(g:, "minlineGitFieldStyle", "bar") " style of git status field
+
+if g:minlineGitFieldStyle == "airline"
+    let s:gitEnd = s:gitAirline . '' . s:reset
+elseif g:minlineGitFieldStyle == "colorblock"
+    let s:gitEnd = ' ' . s:reset
+elseif g:minlineGitFieldStyle == "arrow"
+    let s:gitEnd = s:separatorColor . '' . s:reset
+else
+    let s:gitEnd = s:separatorColor . s:vbar . s:reset
+endif
 
 function! s:ColorScheme()
 	if g:minlineHonorUserDefinedColors
 		return
 	endif
 
-
+    " For the bar, use the colorscheme colors
 	let l:ctermbg = s:getHighlightTerm('StatusLine', 'ctermbg')
 	let l:ctermfg = s:getHighlightTerm('StatusLine', 'ctermfg')
+    let l:gitbg   = get(g:, "minlineGitFieldBg", l:ctermbg)
 
 
 	" Set FG only and use existing StatusLine BG
 	call s:ExecHighlightGroup('MinlineError', '1', l:ctermbg)
 	call s:ExecHighlightGroup('MinlineWarning', '3', l:ctermbg)
-	call s:ExecHighlightGroup('MinlineSpecial', '240', l:ctermbg)
-	call s:ExecHighlightGroup('MinlineNormalMode', l:ctermbg, l:ctermfg)
+	call s:ExecHighlightGroup('MinlineSeparator','240', l:ctermbg)
+	call s:ExecHighlightGroup('MinlineGlyph', '53', l:gitbg)
+	call s:ExecHighlightGroup('MinlineGitField', l:ctermfg, l:gitbg)
+	call s:ExecHighlightGroup('MinlineAirline', l:gitbg, l:ctermbg)
 	call s:ExecHighlightGroup('MinlineReverse', l:ctermbg, l:ctermfg)
 
-	exec "highlight User1 ctermbg=4   guibg=" . s:blue    . " ctermfg=234 guifg=" . s:grey234
-	exec "highlight User2 ctermbg=251 guibg=" . s:white   . " ctermfg=234 guifg=" . s:grey234
-	exec "highlight User3 ctermbg=13  guibg=" . s:purple  . " ctermfg=234 guifg=" . s:grey234
-	exec "highlight User4 ctermbg=9   guibg=" . s:crimson . " ctermfg=234 guifg=" . s:grey234
+    " To use reverted Statusline bg/fg colors in normal mode:
+	" call s:ExecHighlightGroup('MinlineNormalMode', l:ctermbg, l:ctermfg)
+    call s:ExecHighlightGroup('MinlineNormalMode', '17', '2')
+
+	exec "highlight User1 ctermbg=4   guibg=" . s:blue    . " ctermfg=17 guifg=" . s:grey234
+	exec "highlight User2 ctermbg=2   guibg=" . s:yellow  . " ctermfg=17 guifg=" . s:grey234
+	exec "highlight User3 ctermbg=6   guibg=" . s:purple  . " ctermfg=17 guifg=" . s:grey234
+	exec "highlight User4 ctermbg=9   guibg=" . s:crimson . " ctermfg=17 guifg=" . s:grey234
 	exec "highlight User5 ctermbg=236 guibg=" . s:grey236 . " ctermfg=10  guifg=" . s:emerald . " gui=none"
 	exec "highlight User6 ctermbg=236 guibg=" . s:grey236 . " ctermfg=251 guifg=" . s:white   . " gui=none"
 	exec "highlight User7 ctermbg=236 guibg=" . s:grey236 . " ctermfg=4   guifg=" . s:blue    . " gui=none"
@@ -156,64 +203,34 @@ function! s:ColorScheme()
 endfunction
 
 
-function! MinlineFugitiveBranch()
-	if !exists("g:loaded_fugitive") || !exists("b:git_dir")
-		return ""
-	endif
-
-	if g:minlineWithGitBranchCharacter
-		return s:specialColor . "" . s:reset . fugitive#head()
-	endif
-	return fugitive#head()
-endfunction
-
-function! MinlineShortFilePath()
+" Get the file path
+function! MinlineFilePath()
 	if &buftype == "terminal"
 		return expand("%:t")
 	else
-		return pathshorten(expand("%:f"))
+		return expand("%:f")
 	endif
 endfunction
 
-function! s:AleErrorCount()
-    let l:counts = ale#statusline#Count(bufnr(''))
-    return l:counts[0]
+
+" Return the git branch name get by GetGitBranch
+" GetGitBranch is called with an autocommand see below at the end of the script
+function! ShowGitBranch() abort
+  return get(g:, 'git_branch', '')
 endfunction
 
-function! s:AleWarningCount()
-    let l:counts = ale#statusline#Count(bufnr(''))
-    return l:counts[1]
-endfunction
+function! GetGitBranch() abort
+  let g:git_branch = system('git symbolic-ref --short HEAD 2>/dev/null || echo -n "x"')[:-2]
 
-
-function! s:CocErrorCount()
-	let info = get(b:, 'coc_diagnostic_info', {})
-	if empty(info) | return 0 | endif
-	return info['error']
-endfunction
-
-function! s:CocWarningCount()
-	let info = get(b:, 'coc_diagnostic_info', {})
-	if empty(info) | return 0 | endif
-	return info['warning']
+  if g:git_branch == ''
+    return
+  else
+    let g:git_branch = g:git_branch[:13]
+  endif
 endfunction
 
 
-function! MinlineLinterErrors()
-    if exists('g:loaded_ale')
-        return s:AleErrorCount()
-    endif
-	return s:CocErrorCount()
-endfunction
-
-function! MinlineLinterWarnings()
-    if exists('g:loaded_ale')
-        return s:AleWarningCount()
-    endif
-	return s:CocWarningCount()
-endfunction
-
-
+" Main function building the status line
 function! MinlineStatus()
 	let l:statusline = ""
 	let l:mode = mode()
@@ -225,52 +242,42 @@ function! MinlineStatus()
 	" Highlight group:
 	" %#HighlightGroup#
 
-	" vim mode
+	" vim mode (left square with n/i/V letters...)
 	let l:statusline .= MinlineModeColor(l:mode) . ' ' . MinlineModeText(l:mode) . ' ' . s:reset
 
-	" current file
-	let l:statusline .=  ' '
-	let l:file = MinlineShortFilePath()
-	if l:file == ''
-		let l:statusline .= s:specialColor . '(new file)' . s:reset
-	else
-		" linter status (hidden if no errors)
-		if MinlineLinterErrors() > 0
-			let l:statusline .=  '%#MinlineError#✗' . MinlineLinterErrors() . s:reset
-		elseif MinlineLinterWarnings() > 0
-			let l:statusline .=  '%#MinlineWarning#▲' . MinlineLinterWarnings() . s:reset
-		else
-			let l:statusline .= s:specialColor . '✓' . s:reset
-		endif
+    " Git status field
+    let l:statusline .= s:gitGlyph . s:gitFieldColor . '  ' . ShowGitBranch() . '  ' . s:gitEnd
 
-		let l:statusline .= s:separator
-		let l:statusline .= '%<' . MinlineShortFilePath() . ' %h%m%r'
+	" current file
+	let l:file = MinlineFilePath()
+	if l:file != ''
+		let l:statusline .= ' ' . '%<' . MinlineFilePath() . ' %h%m%r'
 	endif
 
 	" move everything after this to right
 	let l:statusline .= l:push_right
 
-	let l:statusline .= s:separator . '%2l' . s:specialColor .   ':' . s:reset . '%2v'
+	let l:statusline .= s:rseparator . '%2l' . s:separatorColor .   ':' . s:reset . '%2v'
 
 	" git branch
-	let l:branch = MinlineFugitiveBranch()
-	if l:branch != ''
-		let l:statusline .= s:separator . l:branch
-	endif
+"	let l:branch = MinlineFugitiveBranch()
+"	if l:branch != ''
+"		let l:statusline .= s:lseparator . l:branch
+"	endif
 
 	" file type
 	if &filetype != ''
-		let l:statusline .= s:separator . &filetype
+		let l:statusline .= s:rseparator  . &filetype
 	endif
 
-	" file encoding (hidden if not utf-8)
+	" file encoding (show only if not utf-8)
 	if &fileencoding != '' && &fileencoding != 'utf-8'
-		let l:statusline .=  s:separator . &fileencoding
+		let l:statusline .=  s:rseparator . &fileencoding
 	endif
 
-	" file format (hidden if not unix)
+	" file format (show only if not unix)
 	if &fileformat != 'unix'
-		let l:statusline .= s:separator . &fileformat
+		let l:statusline .= s:rseparator . &fileformat
 	endif
 
 	let l:statusline .= ' '
@@ -278,13 +285,15 @@ function! MinlineStatus()
 	return l:statusline
 endfunction
 
+
+" Run the status line
 function! s:StatusLine(mode)
 	if &buftype == "nofile" || bufname("%") == "[BufExplorer]"
 		" Don't set a custom status line for file explorers.
 		return
 	elseif a:mode == "not-current"
 		" Status line for inactive windows.
-		setlocal statusline=\ %*%<%{MinlineShortFilePath()}\ %h%m%r
+		setlocal statusline=\ %*%<%{MinlineFilePath()}\ %h%m%r
 		return
 	endif
 
@@ -292,6 +301,10 @@ function! s:StatusLine(mode)
 	setlocal statusline=%!MinlineStatus()
 endfunction
 
+augroup StatusLine
+  au!
+  autocmd BufEnter * call GetGitBranch()
+augroup end
 
 augroup minlineStatusline
 	autocmd!
